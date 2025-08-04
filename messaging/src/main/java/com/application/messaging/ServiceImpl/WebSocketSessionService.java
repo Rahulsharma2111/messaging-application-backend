@@ -1,5 +1,8 @@
-package com.application.messaging;
+package com.application.messaging.ServiceImpl;
 
+import com.application.messaging.Entity.Message;
+import com.application.messaging.Repository.ChatRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -18,18 +21,21 @@ public class WebSocketSessionService {
     }
 
     public void registerUser(String username, String sessionId) {
-        userSessionMap.put(username, sessionId);
+        // Save mapping of username to itself (Spring uses username for /user/{username}/queue)
+        userSessionMap.put(username, username);
+        System.out.println("Registered user: " + username + " with session " + sessionId);
     }
 
     public void sendPrivateMessage(String from, String to, String content) {
-        String sessionId = userSessionMap.get(to);
-        if (sessionId != null) {
+        if (userSessionMap.containsKey(to)) {
             Message message = new Message(from, to, content, LocalDateTime.now());
             messagingTemplate.convertAndSendToUser(
-                    sessionId,
-                    "/queue/messages",
+                    to,                 // recipient username
+                    "/queue/messages",  // destination
                     message
             );
+        } else {
+            System.out.println("User not connected: " + to);
         }
     }
 }
